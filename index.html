@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- A-Frame -->
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+
+  <!-- MindAR -->
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+  <title>AR Business Card</title>
+  
+  <style>
+    #loadingScreen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-family: Arial, sans-serif;
+      z-index: 9999;
+    }
+    #loadingScreen button {
+      margin-top: 20px;
+      padding: 15px 30px;
+      font-size: 18px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #loadingScreen button:hover {
+      background: #45a049;
+    }
+    #status {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #aaa;
+    }
+    #debugInfo {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      color: #0f0;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 12px;
+      z-index: 10000;
+      display: none;
+      max-width: 300px;
+      border: 2px solid #0f0;
+    }
+    #debugInfo.show {
+      display: block;
+    }
+    .scanning {
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+  </style>
+</head>
+
+<body style="margin: 0; overflow: hidden;">
+  <!-- Loading/Permission Screen -->
+  <div id="loadingScreen">
+    <h2>AR Business Card</h2>
+    <p id="status">Click Start to enable camera</p>
+    <button id="startButton">Start AR Experience</button>
+  </div>
+
+  <!-- Debug Info -->
+  <div id="debugInfo">
+    <div>🔍 <span class="scanning">SCANNING...</span></div>
+    <div id="arStatus">AR Status: Initializing...</div>
+    <div id="targetStatus">Target: Not detected</div>
+    <div style="margin-top: 5px; font-size: 10px; color: #aaa;">
+      Hold card steady, ensure good lighting
+    </div>
+  </div>
+
+  <a-scene
+    mindar-image="imageTargetSrc: targets.mind; autoStart: false; uiScanning: no;"
+    embedded
+    color-space="sRGB"
+    renderer="colorManagement: true; physicallyCorrectLights: true;"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false"
+    cursor="rayOrigin: mouse"
+    raycaster="objects: .clickable"
+  >
+
+    <!-- Assets -->
+    <a-assets>
+      <video
+        id="introVideo"
+        src="assets/intro.mp4"
+        preload="auto"
+        loop
+        muted
+        crossorigin="anonymous"
+        webkit-playsinline
+        playsinline
+      ></video>
+
+      <img id="mailIcon" src="assets/mail.png" />
+      <img id="webIcon" src="assets/web.png" />
+    </a-assets>
+
+    <!-- Camera -->
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+    <!-- Image Target -->
+    <a-entity mindar-image-target="targetIndex: 0">
+
+      <!-- 🎬 Floating Video -->
+      <a-video
+        src="#introVideo"
+        width="1.6"
+        height="0.9"
+        position="0 0.6 0"
+      ></a-video>
+
+      <!-- 📧 Mail Button -->
+      <a-image
+        src="#mailIcon"
+        position="-0.35 -0.5 0"
+        width="0.3"
+        height="0.3"
+        class="clickable"
+        id="mailBtn"
+      ></a-image>
+
+      <!-- 🌐 Landing Page Button -->
+      <a-image
+        src="#webIcon"
+        position="0.35 -0.5 0"
+        width="0.3"
+        height="0.3"
+        class="clickable"
+        id="webBtn"
+      ></a-image>
+
+    </a-entity>
+  </a-scene>
+
+  <!-- Interaction Script -->
+  <script>
+    const loadingScreen = document.querySelector("#loadingScreen");
+    const statusText = document.querySelector("#status");
+    const startButton = document.querySelector("#startButton");
+    const debugInfo = document.querySelector("#debugInfo");
+    const arStatus = document.querySelector("#arStatus");
+    const targetStatus = document.querySelector("#targetStatus");
+
+    // Wait for scene to be ready
+    const sceneEl = document.querySelector("a-scene");
+    
+    // Disable button until scene is ready
+    startButton.disabled = true;
+    startButton.textContent = "Loading...";
+    
+    sceneEl.addEventListener("renderstart", () => {
+      console.log("AR scene started rendering!");
+      statusText.textContent = "Ready! Click Start to begin";
+      startButton.textContent = "Start AR Experience";
+      startButton.disabled = false;
+    });
+
+    // Start button - Actually start MindAR camera
+    startButton.addEventListener("click", async () => {
+      try {
+        statusText.textContent = "Starting camera... Please wait";
+        startButton.disabled = true;
+        
+        // Get the MindAR system
+        const arSystem = sceneEl.systems["mindar-image-system"];
+        
+        if (!arSystem) {
+          throw new Error("MindAR system not found!");
+        }
+        
+        // Start MindAR - this will request camera permission and start the feed
+        console.log("Starting MindAR...");
+        await arSystem.start();
+        
+        console.log("✅ MindAR started successfully!");
+        statusText.textContent = "Camera active! Point at your business card";
+        
+        // Hide loading screen
+        setTimeout(() => {
+          loadingScreen.style.display = "none";
+          debugInfo.classList.add("show");
+          arStatus.textContent = "AR Status: Active - Scanning for target";
+        }, 1000);
+        
+      } catch (error) {
+        console.error("Failed to start AR:", error);
+        statusText.textContent = "ERROR: " + error.message;
+        statusText.style.color = "#f00";
+        startButton.disabled = false;
+        arStatus.textContent = "AR Status: FAILED - " + error.message;
+        arStatus.style.color = "#f00";
+      }
+    });
+
+    // Setup interactions after scene loads
+    sceneEl.addEventListener("loaded", () => {
+      console.log("Scene fully loaded!");
+      
+      const video = document.querySelector("#introVideo");
+      const target = document.querySelector("[mindar-image-target]");
+      const mailBtn = document.querySelector("#mailBtn");
+      const webBtn = document.querySelector("#webBtn");
+
+      // Check if MindAR is initialized
+      const arSystem = sceneEl.systems["mindar-image-system"];
+      if (arSystem) {
+        console.log("✅ MindAR system found and ready!");
+      } else {
+        console.error("❌ MindAR system not found!");
+        arStatus.textContent = "AR Status: ERROR - MindAR not loaded";
+        arStatus.style.color = "#f00";
+      }
+
+      // 🎥 Play/pause video on target detection
+      if (target) {
+        target.addEventListener("targetFound", (event) => {
+          console.log("🎯 TARGET FOUND!", event);
+          targetStatus.textContent = "Target: ✅ DETECTED!";
+          targetStatus.style.color = "#0f0";
+          
+          if (video) {
+            video.currentTime = 0;
+            video.play().catch((e) => {
+              console.log("Video play failed:", e);
+            });
+          }
+        });
+
+        target.addEventListener("targetLost", (event) => {
+          console.log("❌ Target lost!", event);
+          targetStatus.textContent = "Target: Lost - Keep scanning";
+          targetStatus.style.color = "#ff0";
+          
+          if (video) {
+            video.pause();
+          }
+        });
+      } else {
+        console.error("❌ Target element not found!");
+      }
+
+      // 📧 Mail click
+      if (mailBtn) {
+        mailBtn.addEventListener("click", () => {
+          console.log("Mail button clicked");
+          window.location.href = "mailto:customer.ftho@gmail.com";
+        });
+      }
+
+      // 🌐 Landing page click
+      if (webBtn) {
+        webBtn.addEventListener("click", () => {
+          console.log("Web button clicked");
+          window.open("https://your-landing-page.com", "_blank");
+        });
+      }
+    });
+
+    // Log any errors
+    window.addEventListener("error", (e) => {
+      console.error("Page error:", e.message);
+      arStatus.textContent = "AR Status: ERROR - " + e.message;
+      arStatus.style.color = "#f00";
+    });
+  </script>
+</body>
+</html>
