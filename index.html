@@ -123,51 +123,73 @@
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
     <!-- Image Target -->
-    <a-entity mindar-image-target="targetIndex: 0">
+    <a-entity mindar-image-target="targetIndex: 0" id="target-entity">
 
-      <!-- TEST: Bright background plane so you know AR is rendering -->
+      <!-- SUPER VISIBLE TEST OBJECTS -->
+      
+      <!-- Giant red box -->
+      <a-box 
+        position="0 0 0.5" 
+        width="0.5" 
+        height="0.5" 
+        depth="0.5" 
+        color="#FF0000"
+        animation="property: rotation; to: 0 360 0; loop: true; dur: 3000"
+      ></a-box>
+
+      <!-- Bright yellow sphere -->
+      <a-sphere 
+        position="0 0.8 0.5" 
+        radius="0.3" 
+        color="#FFFF00"
+      ></a-sphere>
+
+      <!-- Bright cyan background plane -->
       <a-plane
-        position="0 0 0.05"
-        width="0.8"
-        height="0.5"
-        color="#FF00FF"
-        material="shader: flat; opacity: 0.8; side: double"
-        visible="true"
+        position="0 0 0"
+        width="1.2"
+        height="0.8"
+        rotation="0 0 0"
+        color="#00FFFF"
+        opacity="0.9"
       ></a-plane>
 
-      <!-- 🎬 Floating Video -->
-      <a-video
-        src="#introVideo"
-        width="1"
-        height="0.56"
-        position="0 0 0.1"
-        material="shader: flat; side: double; opacity: 1"
-        visible="true"
-      ></a-video>
+      <!-- Text -->
+      <a-text
+        value="AR WORKING!"
+        position="0 0 0.2"
+        align="center"
+        color="#000000"
+        width="2"
+      ></a-text>
+
+      <!-- 🎬 Video (smaller) -->
+      <a-plane
+        position="0 0 0.15"
+        width="0.8"
+        height="0.45"
+        material="src: #introVideo; shader: flat"
+      ></a-plane>
 
       <!-- 📧 Mail Button -->
-      <a-image
-        src="#mailIcon"
-        position="-0.25 -0.4 0.1"
-        width="0.2"
-        height="0.2"
-        material="shader: flat; side: double; transparent: true; opacity: 1"
+      <a-plane
+        position="-0.3 -0.5 0.2"
+        width="0.15"
+        height="0.15"
+        material="src: #mailIcon; transparent: true"
         class="clickable"
         id="mailBtn"
-        visible="true"
-      ></a-image>
+      ></a-plane>
 
-      <!-- 🌐 Landing Page Button -->
-      <a-image
-        src="#webIcon"
-        position="0.25 -0.4 0.1"
-        width="0.2"
-        height="0.2"
-        material="shader: flat; side: double; transparent: true; opacity: 1"
+      <!-- 🌐 Web Button -->
+      <a-plane
+        position="0.3 -0.5 0.2"
+        width="0.15"
+        height="0.15"
+        material="src: #webIcon; transparent: true"
         class="clickable"
         id="webBtn"
-        visible="true"
-      ></a-image>
+      ></a-plane>
 
     </a-entity>
   </a-scene>
@@ -255,8 +277,21 @@
       if (target) {
         target.addEventListener("targetFound", (event) => {
           console.log("🎯 TARGET FOUND!", event);
+          console.log("Target entity:", target);
+          console.log("Target visible:", target.getAttribute("visible"));
+          console.log("Target children:", target.children);
+          
           targetStatus.textContent = "Target: ✅ DETECTED!";
           targetStatus.style.color = "#0f0";
+          
+          // Force visibility
+          target.setAttribute("visible", true);
+          
+          // Check all children
+          Array.from(target.children).forEach((child, i) => {
+            console.log(`Child ${i}:`, child.tagName, "visible:", child.getAttribute("visible"));
+            child.setAttribute("visible", true);
+          });
           
           if (video) {
             video.currentTime = 0;
