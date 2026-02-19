@@ -122,74 +122,77 @@
     <!-- Camera -->
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <!-- Image Target -->
+    <!-- Image Target (MindAR tracking anchor) -->
     <a-entity mindar-image-target="targetIndex: 0" id="target-entity">
-
-      <!-- SUPER VISIBLE TEST OBJECTS -->
       
-      <!-- Giant red box -->
-      <a-box 
-        position="0 0 0.5" 
-        width="0.5" 
-        height="0.5" 
-        depth="0.5" 
-        color="#FF0000"
-        animation="property: rotation; to: 0 360 0; loop: true; dur: 3000"
-      ></a-box>
+      <!-- Content wrapper - we'll manually control this -->
+      <a-entity id="ar-content" visible="false">
+        <!-- SUPER VISIBLE TEST OBJECTS -->
+        
+        <!-- Giant red box -->
+        <a-box 
+          position="0 0 0.5" 
+          width="0.5" 
+          height="0.5" 
+          depth="0.5" 
+          color="#FF0000"
+          animation="property: rotation; to: 0 360 0; loop: true; dur: 3000"
+        ></a-box>
 
-      <!-- Bright yellow sphere -->
-      <a-sphere 
-        position="0 0.8 0.5" 
-        radius="0.3" 
-        color="#FFFF00"
-      ></a-sphere>
+        <!-- Bright yellow sphere -->
+        <a-sphere 
+          position="0 0.8 0.5" 
+          radius="0.3" 
+          color="#FFFF00"
+        ></a-sphere>
 
-      <!-- Bright cyan background plane -->
-      <a-plane
-        position="0 0 0"
-        width="1.2"
-        height="0.8"
-        rotation="0 0 0"
-        color="#00FFFF"
-        opacity="0.9"
-      ></a-plane>
+        <!-- Bright cyan background plane -->
+        <a-plane
+          position="0 0 0"
+          width="1.2"
+          height="0.8"
+          rotation="0 0 0"
+          color="#00FFFF"
+          opacity="0.9"
+        ></a-plane>
 
-      <!-- Text -->
-      <a-text
-        value="AR WORKING!"
-        position="0 0 0.2"
-        align="center"
-        color="#000000"
-        width="2"
-      ></a-text>
+        <!-- Text -->
+        <a-text
+          value="AR WORKING!"
+          position="0 0 0.2"
+          align="center"
+          color="#000000"
+          width="2"
+        ></a-text>
 
-      <!-- 🎬 Video (smaller) -->
-      <a-plane
-        position="0 0 0.15"
-        width="0.8"
-        height="0.45"
-        material="src: #introVideo; shader: flat"
-      ></a-plane>
+        <!-- 🎬 Video (smaller) -->
+        <a-plane
+          position="0 0 0.15"
+          width="0.8"
+          height="0.45"
+          material="src: #introVideo; shader: flat"
+        ></a-plane>
 
-      <!-- 📧 Mail Button -->
-      <a-plane
-        position="-0.3 -0.5 0.2"
-        width="0.15"
-        height="0.15"
-        material="src: #mailIcon; transparent: true"
-        class="clickable"
-        id="mailBtn"
-      ></a-plane>
+        <!-- 📧 Mail Button -->
+        <a-plane
+          position="-0.3 -0.5 0.2"
+          width="0.15"
+          height="0.15"
+          material="src: #mailIcon; transparent: true"
+          class="clickable"
+          id="mailBtn"
+        ></a-plane>
 
-      <!-- 🌐 Web Button -->
-      <a-plane
-        position="0.3 -0.5 0.2"
-        width="0.15"
-        height="0.15"
-        material="src: #webIcon; transparent: true"
-        class="clickable"
-        id="webBtn"
-      ></a-plane>
+        <!-- 🌐 Web Button -->
+        <a-plane
+          position="0.3 -0.5 0.2"
+          width="0.15"
+          height="0.15"
+          material="src: #webIcon; transparent: true"
+          class="clickable"
+          id="webBtn"
+        ></a-plane>
+      </a-entity>
 
     </a-entity>
   </a-scene>
@@ -260,6 +263,7 @@
       
       const video = document.querySelector("#introVideo");
       const target = document.querySelector("[mindar-image-target]");
+      const arContent = document.querySelector("#ar-content");
       const mailBtn = document.querySelector("#mailBtn");
       const webBtn = document.querySelector("#webBtn");
 
@@ -274,24 +278,19 @@
       }
 
       // 🎥 Play/pause video on target detection
-      if (target) {
+      if (target && arContent) {
         target.addEventListener("targetFound", (event) => {
           console.log("🎯 TARGET FOUND!", event);
-          console.log("Target entity:", target);
-          console.log("Target visible:", target.getAttribute("visible"));
-          console.log("Target children:", target.children);
+          console.log("Showing AR content...");
           
           targetStatus.textContent = "Target: ✅ DETECTED!";
           targetStatus.style.color = "#0f0";
           
-          // Force visibility
-          target.setAttribute("visible", true);
+          // Show the content!
+          arContent.setAttribute("visible", "true");
+          arContent.object3D.visible = true;
           
-          // Check all children
-          Array.from(target.children).forEach((child, i) => {
-            console.log(`Child ${i}:`, child.tagName, "visible:", child.getAttribute("visible"));
-            child.setAttribute("visible", true);
-          });
+          console.log("AR Content visible set to:", arContent.getAttribute("visible"));
           
           if (video) {
             video.currentTime = 0;
@@ -302,16 +301,21 @@
         });
 
         target.addEventListener("targetLost", (event) => {
-          console.log("❌ Target lost!", event);
+          console.log("❌ Target lost! Hiding AR content");
           targetStatus.textContent = "Target: Lost - Keep scanning";
           targetStatus.style.color = "#ff0";
+          
+          // Hide the content
+          arContent.setAttribute("visible", "false");
           
           if (video) {
             video.pause();
           }
         });
       } else {
-        console.error("❌ Target element not found!");
+        console.error("❌ Target or AR content element not found!");
+        console.log("Target:", target);
+        console.log("AR Content:", arContent);
       }
 
       // 📧 Mail click
